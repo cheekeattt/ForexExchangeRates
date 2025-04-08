@@ -1,0 +1,81 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+
+<form id="exchangeForm" class="row g-3">
+    <div class="col-md-6">
+        <label for="baseCurrency" class="form-label">Base Currency</label>
+        <select id="baseCurrency" class="form-select">
+        </select>
+    </div>
+    <div class="col-md-6">
+        <label for="targetCurrency" class="form-label">Target Currency</label>
+        <select id="targetCurrency" class="form-select">
+        </select>
+    </div>
+    <div class="col-12 text-center mt-3">
+        <button type="button" id="getRateBtn" class="btn btn-primary">Get Exchange Rate</button>
+    </div>
+</form>
+
+<div id="resultBox" class="alert alert-info mt-4 d-none text-center">
+    <span id="rateResult"></span>
+</div>
+
+@section Scripts {
+    <script>
+            $(document).ready(function () {
+            $.ajax({
+                url: '/ExchangeRate/GetSupportedCurrencies',
+                type: 'GET',
+                success: function (currencies) {
+                    if (Array.isArray(currencies)) {
+                        currencies.forEach(function (currency) {
+                            const option = `<option value="${currency.code}">${currency.code} - ${currency.name}</option>`;
+                            $('#baseCurrency').append(option);
+                            $('#targetCurrency').append(option);
+                        });
+
+                        // Set default selections (optional)
+                        $('#baseCurrency').val('USD');
+                        $('#targetCurrency').val('MYR');
+                    } else {
+                        console.error("Unexpected response:", currencies);
+                    }
+                },
+                error: function () {
+                    alert('Failed to load supported currencies.');
+                }
+            });
+        });
+
+        $("#getRateBtn").click(function () {
+            const base = $("#baseCurrency").val();
+            const target = $("#targetCurrency").val();
+
+            if (base === target) {
+                $("#rateResult").text("Base and target currency must be different.");
+                $("#resultBox").removeClass("d-none").addClass("alert-warning");
+                return;
+            }
+
+            $.ajax({
+                url: `/ExchangeRate/GetExchangeRate?baseCurrency=${base}&targetCurrency=${target}`,
+                type: 'GET',
+                success: function (rate) {
+                    if (rate) {
+                        $("#rateResult").text(`1 ${base} = ${rate} ${target}`);
+                        $("#resultBox").removeClass("d-none").removeClass("alert-warning").addClass("alert-info");
+                    } else {
+                        $("#rateResult").text("Could not fetch exchange rate.");
+                        $("#resultBox").removeClass("d-none").addClass("alert-warning");
+                    }
+                },
+                error: function () {
+                    $("#rateResult").text("An error occurred while fetching the rate.");
+                    $("#resultBox").removeClass("d-none").addClass("alert-danger");
+                }
+            });
+        });
+    </script>
+}
